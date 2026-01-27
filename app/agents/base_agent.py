@@ -1,12 +1,19 @@
+import os
+from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
 from app.prompts.system import BASE_SYSTEM_PROMPT
+
+load_dotenv()
+
 
 class BaseAgent:
     def __init__(self):
         self.llm = ChatOpenAI(
-            model="gpt-4o-mini",
-            temperature=0
+            model="openai/gpt-4o-mini",
+            temperature=0,
+            api_key=os.getenv("OPENAI_API_KEY"),
+            base_url=os.getenv("OPENAI_BASE_URL"),
         )
 
         self.prompt = ChatPromptTemplate.from_messages([
