@@ -1,10 +1,27 @@
+"""
+LEGACY CODE
+Kept for learning/reference.
+Not used in Patient Journey Orchestration Agent.
+"""
+
+
+
+
+
+
+
+
+
+
+
+
 # ---------TEXT REPLY BACK APPROACH, this time we have used Langchain tools that are invoking python functions ---------
 
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from app.tools.langchain_tools import tools
+from experiments.legacy.langchain_tools import tools
 
 load_dotenv()
 

@@ -1,10 +1,16 @@
-from app.agents.base_agent import BaseAgent
+"""
+Entry point for Patient Journey Orchestration Agent.
 
-agent = BaseAgent()
+NOTE:
+Legacy interactive agent loop has been deprecated.
+This file will be wired to LangGraph workflow.
+"""
 
-while True:
-    goal = input("\n🎯 Goal > ")
-    if goal.lower() == "exit":
-        break
-    response = agent.run(goal)
-    print("\n🤖 Agent Output:\n", response)
+def main():
+    print("Patient Journey Orchestration Agent")
+    print("System bootstrapped successfully.")
+    print("Workflow integration pending.")
+
+
+if __name__ == "__main__":
+    main()

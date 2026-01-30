@@ -1,3 +1,17 @@
+"""
+LEGACY CODE
+Kept for learning/reference.
+Not used in Patient Journey Orchestration Agent.
+"""
+
+
+
+
+
+
+
+
+
 # from langchain.tools import Tool
 # from app.tools.system_tools import get_current_time, add_numbers
 
@@ -16,7 +30,7 @@
 
 
 from langchain_core.tools import tool
-from app.tools.system_tools import get_current_time, add_numbers
+from experiments.legacy.system_tools import get_current_time, add_numbers
 
 
 @tool

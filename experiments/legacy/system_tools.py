@@ -1,3 +1,19 @@
+
+
+
+
+"""
+LEGACY CODE
+Kept for learning/reference.
+Not used in Patient Journey Orchestration Agent.
+"""
+
+
+
+
+
+
+
 from datetime import datetime
 
 def get_current_time() -> str:
