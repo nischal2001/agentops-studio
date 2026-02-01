@@ -63,7 +63,8 @@ def scheduling_node(state: JourneyGraphState) -> JourneyGraphState:
     return {"patient_state": patient_state}
 def build_patient_journey_graph():
     """
-    Builds and returns the LangGraph workflow.
+    Builds and returns the LangGraph workflow
+    with conditional routing.
     """
 
     graph = StateGraph(JourneyGraphState)
@@ -75,9 +76,17 @@ def build_patient_journey_graph():
     # Entry point
     graph.set_entry_point("dependency_agent")
 
-    # Flow:
-    # DependencyAgent → SchedulingAgent → END
-    graph.add_edge("dependency_agent", "scheduling_agent")
+    # Conditional routing from DependencyAgent
+    graph.add_conditional_edges(
+        "dependency_agent",
+        dependency_router,
+        {
+            "dependencies_ok": "scheduling_agent",
+            "dependencies_blocked": END
+        }
+    )
+
+    # SchedulingAgent always ends (for now)
     graph.add_edge("scheduling_agent", END)
 
     return graph.compile()
@@ -87,19 +96,35 @@ dependency_agent = DependencyAgent()
 
 def dependency_node(state: JourneyGraphState) -> JourneyGraphState:
     """
-    LangGraph node: Dependency Agent
+    DependencyAgent node.
 
-    Checks whether prerequisites are satisfied.
-    Does NOT mutate state.
+    Performs dependency checks but does NOT mutate state.
+    Only returns the state unchanged.
     """
 
     patient_state = state["patient_state"]
 
     dependencies_ok = dependency_agent.check_dependencies(patient_state)
 
-    if not dependencies_ok:
-        print("[DependencyAgent] Dependencies not satisfied. Blocking progression.")
-        return state
+    if dependencies_ok:
+        print("[DependencyAgent] Dependencies satisfied.")
+    else:
+        print("[DependencyAgent] Dependencies NOT satisfied.")
 
-    print("[DependencyAgent] Dependencies satisfied.")
+    # IMPORTANT: always return state, never a string
     return state
+
+
+
+def dependency_router(state: JourneyGraphState) -> str:
+    """
+    Decides routing based on patient_state inside graph state.
+    """
+
+    patient_state = state["patient_state"]
+
+    if dependency_agent.check_dependencies(patient_state):
+        return "dependencies_ok"
+
+    return "dependencies_blocked"
+
