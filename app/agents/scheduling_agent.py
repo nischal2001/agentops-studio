@@ -11,11 +11,21 @@ from app.core.state import PatientJourneyState
 
 
 class SchedulingAgent:
-    def __init__(self):
-        self.llm = ChatOpenAI(
-            model="gpt-4o-mini",
-            temperature=0
-        )
+    def __init__(self, use_llm: bool = False):
+        """
+        SchedulingAgent can operate in:
+        - rule-based mode (default, no LLM)
+        - LLM-based mode (enabled later)
+        """
+        self.use_llm = use_llm
+        self.llm = None
+
+        if self.use_llm:
+            self.llm = ChatOpenAI(
+                model="gpt-4o-mini",
+                temperature=0
+            )
+
 
     def decide_next_state(self, patient_state):
         """
