@@ -9,7 +9,11 @@ from app.workflows.patient_journey_graph import build_patient_journey_graph
 
 
 def main():
-    patient_state = PatientState(patient_id="P001")
+    patient_state = PatientState(
+    patient_id="P001",
+    current_state=PatientJourneyState.INTAKE_COMPLETED
+)
+
 
     graph = build_patient_journey_graph()
 

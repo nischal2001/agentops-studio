@@ -16,6 +16,8 @@ from app.core.state import PatientState, PatientJourneyState
 from app.core.validator import validate_transition
 from app.agents.scheduling_agent import SchedulingAgent
 from app.agents.dependency_agent import DependencyAgent
+from app.agents.monitoring_agent import MonitoringAgent
+
 
 
 class JourneyGraphState(TypedDict):
@@ -63,31 +65,39 @@ def scheduling_node(state: JourneyGraphState) -> JourneyGraphState:
     return {"patient_state": patient_state}
 def build_patient_journey_graph():
     """
-    Builds and returns the LangGraph workflow
-    with conditional routing.
+    Builds LangGraph workflow with looping orchestration.
     """
 
     graph = StateGraph(JourneyGraphState)
 
-    # Register nodes
+    # Nodes
     graph.add_node("dependency_agent", dependency_node)
     graph.add_node("scheduling_agent", scheduling_node)
+    graph.add_node("monitoring_agent", monitoring_node)
 
     # Entry point
     graph.set_entry_point("dependency_agent")
 
-    # Conditional routing from DependencyAgent
+    # Dependency → Scheduling (conditional)
     graph.add_conditional_edges(
         "dependency_agent",
         dependency_router,
         {
             "dependencies_ok": "scheduling_agent",
-            "dependencies_blocked": END
+            "dependencies_blocked": END,
         }
     )
 
-    # SchedulingAgent always ends (for now)
-    graph.add_edge("scheduling_agent", END)
+    # Scheduling → Monitoring
+    graph.add_conditional_edges(
+        "monitoring_agent",
+        lambda decision: decision,
+        {
+            "continue": "dependency_agent",
+            "stop": END,
+        },
+    )
+
 
     return graph.compile()
 
@@ -128,3 +138,28 @@ def dependency_router(state: JourneyGraphState) -> str:
 
     return "dependencies_blocked"
 
+
+monitoring_agent = MonitoringAgent()
+
+def monitoring_node(state: JourneyGraphState) -> str:
+    decision = monitoring_agent.decide(state["patient_state"])
+
+    if decision == "continue":
+        print("[MonitoringAgent] Workflow still active.")
+        return "continue"
+
+    print("[MonitoringAgent] Workflow halted.")
+    return "stop"
+
+
+def monitoring_router(state: JourneyGraphState) -> str:
+    """
+    Routes based on MonitoringAgent decision.
+    """
+
+    patient_state = state["patient_state"]
+
+    if monitoring_agent.should_continue(patient_state):
+        return "continue"
+
+    return "stop"
