@@ -17,7 +17,7 @@ Only validated transitions can MODIFY this state.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 
@@ -47,6 +47,27 @@ class PatientJourneyState(Enum):
     JOURNEY_CLOSED = "JOURNEY_CLOSED"
 
 
+class EventStatus(str, Enum):
+    """
+    Status of a scheduled patient event.
+    """
+    SCHEDULED = "scheduled"
+    COMPLETED = "completed"
+    MISSED = "missed"
+
+
+@dataclass
+class PatientEvent:
+    """
+    Represents a scheduled event in the patient's journey.
+    Examples: appointment, lab test, follow-up
+    """
+    event_id: str
+    event_type: str          # e.g. "appointment", "lab_test", "follow_up"
+    scheduled_time: datetime
+    status: EventStatus = EventStatus.SCHEDULED
+
+
 @dataclass(frozen=True)
 class StateTransition:
     """
@@ -67,43 +88,32 @@ class StateTransition:
 @dataclass
 class PatientState:
     """
-    Represents the complete, authoritative state of a patient's journey.
-
-    This is the SINGLE SOURCE OF TRUTH.
+    Core domain state for a patient journey.
+    Acts as the single source of truth.
     """
 
-    # Unique identifier for the patient
     patient_id: str
-
-    # Current position in the patient journey
     current_state: PatientJourneyState = PatientJourneyState.NEW_PATIENT
-
-    # List of states already completed
-    completed_states: List[PatientJourneyState] = field(default_factory=list)
-
-    # Stores important timestamps (appointments, lab tests, follow-ups, etc.)
-    timestamps: Dict[str, Optional[datetime]] = field(default_factory=dict)
-
-    # Flags indicate issues or alerts, NOT workflow progress
-    flags: Dict[str, bool] = field(default_factory=lambda: {
-        "missed": False,
-        "overdue": False
-    })
-
-    # Append-only transition history for auditing
     history: List[StateTransition] = field(default_factory=list)
 
-    def apply_transition(
-        self,
-        to_state: PatientJourneyState,
-        by: str
-    ) -> None:
-        """
-        Applies a state transition AFTER validation.
+    # -----------------------------
+    # 🕒 Simulated time (deterministic)
+    # -----------------------------
+    current_time: datetime = field(
+        default_factory=lambda: datetime(2025, 1, 1, 9, 0)
+    )
 
-        IMPORTANT:
-        - This method does NOT validate transitions
-        - Validation must happen in validator.py
+    # -----------------------------
+    # 📅 Scheduled events
+    # -----------------------------
+    events: List[PatientEvent] = field(default_factory=list)
+
+    # -----------------------------
+    # State transition handling
+    # -----------------------------
+    def apply_transition(self, to_state: PatientJourneyState, by: str):
+        """
+        Apply a validated state transition.
         """
 
         transition = StateTransition(
@@ -112,37 +122,43 @@ class PatientState:
             by=by
         )
 
-        # Record transition history (append-only)
         self.history.append(transition)
-
-        # Mark current state as completed
-        self.completed_states.append(self.current_state)
-
-        # Move to the new state
         self.current_state = to_state
 
-    def has_completed(self, state: PatientJourneyState) -> bool:
+    # -----------------------------
+    # 🕒 Time control (simulation only)
+    # -----------------------------
+    def advance_time(self, delta: timedelta):
         """
-        Checks whether a given state has already been completed.
-        Useful for dependency validation.
+        Advance simulated time.
+        This should ONLY be called by simulation/test runners.
         """
-        return state in self.completed_states
+        self.current_time += delta
 
-    def mark_flag(self, flag_name: str) -> None:
+    # -----------------------------
+    # 📅 Event helpers (read-only)
+    # -----------------------------
+    def get_due_events(self) -> List[PatientEvent]:
         """
-        Marks a flag as True.
-        Flags signal problems but do NOT advance workflow.
+        Returns events whose scheduled time has passed
+        but are still not completed.
         """
-        if flag_name not in self.flags:
-            raise ValueError(f"Unknown flag: {flag_name}")
+        return [
+            event for event in self.events
+            if event.status == EventStatus.SCHEDULED
+            and event.scheduled_time <= self.current_time
+        ]
+    @property
+    def completed_states(self) -> set:
+        """
+        Returns the set of states that have already been completed
+        in this patient journey.
 
-        self.flags[flag_name] = True
-
-    def clear_flag(self, flag_name: str) -> None:
+        Derived from transition history.
         """
-        Clears a previously set flag.
-        """
-        if flag_name not in self.flags:
-            raise ValueError(f"Unknown flag: {flag_name}")
+        completed = set()
 
-        self.flags[flag_name] = False
+        for transition in self.history:
+            completed.add(transition.to_state)
+
+        return completed
