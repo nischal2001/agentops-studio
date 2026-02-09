@@ -59,6 +59,9 @@ class ReminderAgent:
                     event_type=event.event_type,
                     event_id=event.event_id,
                 )
+                # 🔔 Signal to the rest of the system
+                patient_state.set_signal("missed_event")
+                
                 signals["missed_detected"] = True
                 continue
 

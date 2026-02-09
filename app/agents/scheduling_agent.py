@@ -33,6 +33,20 @@ class SchedulingAgent:
         (Temporary rule-based logic; LLM reasoning can be added later)
         """
 
+        # Handle missed events (reschedule logic)
+        if patient_state.signals.get("missed_event"):
+            patient_state.clear_signal("missed_event")
+        
+            if patient_state.current_state == PatientJourneyState.APPOINTMENT_SCHEDULED:
+                return PatientJourneyState.APPOINTMENT_SCHEDULED  # re-schedule
+        
+            if patient_state.current_state == PatientJourneyState.LAB_TEST_SCHEDULED:
+                return PatientJourneyState.LAB_TEST_SCHEDULED
+        
+            if patient_state.current_state == PatientJourneyState.FOLLOW_UP_SCHEDULED:
+                return PatientJourneyState.FOLLOW_UP_SCHEDULED
+        
+
         current = patient_state.current_state
 
         if current == PatientJourneyState.INTAKE_COMPLETED:
