@@ -10,6 +10,10 @@ from app.core.state import PatientJourneyState
 
 class MonitoringAgent:
     def decide(self, patient_state) -> str:
+        if patient_state.signals.get("escalation_required"):
+            print("[MonitoringAgent] Escalation required. Halting workflow.")
+            return "stop"
+
         """
         Decide whether the workflow should continue or stop.
         """

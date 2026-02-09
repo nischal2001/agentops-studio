@@ -105,6 +105,18 @@ class PatientState:
     def clear_signal(self, key: str):
         self.signals.pop(key, None)
 
+    # 🔁 Retry counters (per event type)
+    retry_counts: Dict[str, int] = field(default_factory=dict)
+
+    def increment_retry(self, event_type: str):
+        self.retry_counts[event_type] = self.retry_counts.get(event_type, 0) + 1
+    
+    
+    def get_retry_count(self, event_type: str) -> int:
+        return self.retry_counts.get(event_type, 0)
+    
+
+
     @property
     def completed_states(self) -> set:
         return {t.to_state for t in self.history}
